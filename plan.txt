@@ -1,0 +1,10 @@
+modules:
+- data (food nodes + map information)
+- make_mesh.py
+- adapt_network.py
+- notebook:
+  1. plot map from data
+  2. make mesh using make_mesh.py
+  3. plot mesh over data
+  4. adapt network (snapshots or smooth animation)
+  
