@@ -7,4 +7,8 @@ modules:
   2. make mesh using make_mesh.py
   3. plot mesh over data
   4. adapt network (snapshots or smooth animation)
-  
+  5. metrics
+  6. adjust parameters and observe changes in metrics
+     - explanation of parameters:
+       - gamma - determines how strongly a difference in flux leads to a change in conductivity (high -> ..., 1 -> ..., low -> ...)
+       - source constant - determines how much flow is introduced to the source and sink nodes at each time step (high -> ..., 1 -> ..., low -> ...)
