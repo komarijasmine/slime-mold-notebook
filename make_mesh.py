@@ -43,7 +43,8 @@ def jittered_hex_grid_points(
             candidate_point = Point(candidate_x, candidate_y)
 
             x += spacing
-
+            points.append((candidate_x, candidate_y))
+            
         y += row_spacing
         row += 1
 

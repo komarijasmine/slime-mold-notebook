@@ -3,9 +3,6 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.geometry import Point
 
-
-# 1. Make lists of locations and their corresponding coordinates
-
 location_names = ["AUC Academic Building", "UvA Science Park Library", "USC Universum Gym", "Amsterdam Science Park Station", "SPAR",
    "Albert Heijn", "Lidl", "Kruidvat", "OBA Javaplein", "Studio/K", "Oosterpark", "Flevopark", "C&C Asian Market", "CREA/UvA Roeterseiland Campus",
    "Action", "Q-Factory", "Amsterdam Muiderpoort Station", "Wereldmuseum", "Dappermarkt", "Flevoparkbad"]
@@ -14,39 +11,36 @@ location_coords = [(52.3553, 4.9512), (52.3544, 4.9557), (52.3558, 4.9561), (52.
 (52.3637, 4.939), (52.3643, 4.9388), (52.3655, 4.9359), (52.3604, 4.9204), (52.3590, 4.9482), (52.3639, 4.9275), (52.3634, 4.9130), (52.3572, 4.9315),
 (52.3578, 4.9306), (52.3611, 4.9306), (52.3631, 4.9224), (52.3627, 4.9279), (52.3649, 4.9531)]
 
-bounds = (52.35, 4.91, 52.37, 4.96)
+bounds = (4.91, 52.35, 4.96, 52.37)
 
 geometry_points = [Point(lon, lat) for lat, lon in location_coords]
-# 2. Create the GeoDataFrame (using standard GPS coordinates EPSG:4326)
 gdf = gpd.GeoDataFrame({"name": location_names, "geometry": geometry_points}, crs="EPSG:4326")
 
-# 3. Web maps use Web Mercator (EPSG:3857). We must reproject it so the basemap fits perfectly
+# changing ESPG for web maps
 gdf = gdf.to_crs(epsg=3857)
+if __name__ == "__main__":
+   
+# plotting with matplotlib
+    fig, ax = plt.subplots(figsize=(12, 10))
+    gdf.plot(ax=ax, color="red", markersize=40, zorder=2)
 
-# 4. Set up the Matplotlib plot
-fig, ax = plt.subplots(figsize=(12, 10))
+    for idx, row in gdf.iterrows():
+# Offset text slightly so it doesn't overlap the dot
+        ax.text(
+            row["geometry"].x + 60,
+            row["geometry"].y + 20,
+            row["name"],
+            fontsize=8,
+            fontweight="bold",
+            color="black",
+            bbox=dict(
+                facecolor="white", alpha=0.7, edgecolor="gray", boxstyle="round,pad=0.2"
+            ),
+            zorder=3,
+    )   
 
-# Plot the coordinates as red dots
-gdf.plot(ax=ax, color="red", markersize=40, zorder=2)
+# background image
+    cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, zorder=1)
+    ax.set_axis_off()
 
-# 5. Add text labels over the image next to the dots
-for idx, row in gdf.iterrows():
-    # Offset text slightly so it doesn't overlap the dot
-    ax.text(
-        row["geometry"].x + 60,
-        row["geometry"].y + 20,
-        row["name"],
-        fontsize=8,
-        fontweight="bold",
-        color="black",
-        bbox=dict(
-            facecolor="white", alpha=0.7, edgecolor="gray", boxstyle="round,pad=0.2"
-        ),
-        zorder=3,
-    )
-
-# 6. Fetch the background image tiles and download them
-cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, zorder=1)
-ax.set_axis_off()
-
-plt.show()
+    plt.show()
