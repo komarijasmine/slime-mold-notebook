@@ -8,3 +8,11 @@ modules:
   3. plot mesh over data
   4. adapt network (snapshots or smooth animation)
   
+to do:
+- write walk-through in notebook.ipynb
+- write code in notebook.ipynb
+  - plot the map
+- write code in modules
+- figure out how to base total_length on macrolinks
+  1. when making macrolink, encode its length as sum of the microlinks that constitute it
+  2. use macrolink lengths
