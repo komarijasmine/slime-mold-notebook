@@ -16,8 +16,9 @@ location_coords = [(52.3553, 4.9512), (52.3544, 4.9557), (52.3558, 4.9561), (52.
 
 bounds = (52.35, 4.91, 52.37, 4.96)
 
+geometry_points = [Point(lon, lat) for lat, lon in location_coords]
 # 2. Create the GeoDataFrame (using standard GPS coordinates EPSG:4326)
-gdf = gpd.GeoDataFrame({"name": location_names, "geometry": location_coords}, crs="EPSG:4326")
+gdf = gpd.GeoDataFrame({"name": location_names, "geometry": geometry_points}, crs="EPSG:4326")
 
 # 3. Web maps use Web Mercator (EPSG:3857). We must reproject it so the basemap fits perfectly
 gdf = gdf.to_crs(epsg=3857)
