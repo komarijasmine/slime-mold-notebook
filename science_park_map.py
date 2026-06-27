@@ -3,28 +3,8 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.geometry import Point
 
-LOCATIONS = {
-    "AUC Academic Building": (52.3553, 4.9512),
-    "UvA Science Park Library": (52.3544, 4.9557),
-    "USC Universum Gym": (52.3558, 4.9561),
-    "Amsterdam Science Park Station": (52.3530, 4.9485),
-    "SPAR": (52.3547, 4.9503),
-    "Albert Heijn": (52.3577, 4.9393),
-    "Lidl": (52.3617, 4.9403),
-    "Kruidvat": (52.3637, 4.939),
-    "OBA Javaplein": (52.3643, 4.9388),
-    "Studio/K": (52.3655, 4.9359),
-    "Oosterpark": (52.3604, 4.9204),
-    "Flevopark": (52.3590, 4.9482),
-    "C&C Asian Market": (52.3639, 4.9275),
-    "CREA/UvA Roeterseiland Campus": (52.3634, 4.9130),
-    "Action": (52.3572, 4.9315),
-    "Q-Factory": (52.3578, 4.9306),
-    "Amsterdam Muiderpoort Station": (52.3611, 4.9306),
-    "Wereldmuseum": (52.3631, 4.9224),
-    "Dappermarkt": (52.3627, 4.9279),
-    "Flevoparkbad": (52.3649, 4.9531),
-}
+
+# 1. Make lists of locations and their corresponding coordinates
 
 location_names = ["AUC Academic Building", "UvA Science Park Library", "USC Universum Gym", "Amsterdam Science Park Station", "SPAR",
    "Albert Heijn", "Lidl", "Kruidvat", "OBA Javaplein", "Studio/K", "Oosterpark", "Flevopark", "C&C Asian Market", "CREA/UvA Roeterseiland Campus",
@@ -36,14 +16,8 @@ location_coords = [(52.3553, 4.9512), (52.3544, 4.9557), (52.3558, 4.9561), (52.
 
 bounds = (52.35, 4.91, 52.37, 4.96)
 
-
-# 1. Convert dictionary into lists for GeoDataFrame
-names = list(LOCATIONS.keys())
-
-geometry = [Point(lon, lat) for lat, lon in LOCATIONS.values()]
-
 # 2. Create the GeoDataFrame (using standard GPS coordinates EPSG:4326)
-gdf = gpd.GeoDataFrame({"name": names, "geometry": geometry}, crs="EPSG:4326")
+gdf = gpd.GeoDataFrame({"name": location_names, "geometry": location_coords}, crs="EPSG:4326")
 
 # 3. Web maps use Web Mercator (EPSG:3857). We must reproject it so the basemap fits perfectly
 gdf = gdf.to_crs(epsg=3857)
