@@ -1,52 +1,10 @@
-import requests
-import json
-
-import matplotlib.pyplot as plt
+import contextily as cx
 import geopandas as gpd
+import matplotlib.pyplot as plt
 from shapely.geometry import Point
 
-# Define the bounding box specifically around your data points (South, West, North, East)
-# This tightly hugs the Science Park & Oosterpark coordinates you provided.
-bbox = "52.348,4.910,52.368,4.965"
-
-# Overpass API query to fetch roads (highways) within that box
-overpass_url = "http://overpass-api.de/api/interpreter"
-overpass_query = f"""
-[out:json];
-(
-  way["highway"]({bbox});
-);
-out geom;
-"""
-
-print("Fetching streets from OpenStreetMap Overpass API...")
-response = requests.post(overpass_url, data={'data': overpass_query})
-data = response.json()
-
-# Convert OpenStreetMap JSON to standard GeoJSON format
-geojson = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [[pt["lon"], pt["lat"]] for pt in element["geometry"]]
-            },
-            "properties": element.get("tags", {})
-        }
-        for element in data["elements"] if "geometry" in element
-    ]
-}
-
-# Save it locally as a GeoJSON file
-with open("amsterdam_streets.geojson", "w") as f:
-    json.dump(geojson, f)
-
-print("Success! 'amsterdam_streets.geojson' has been saved locally. You can go offline now!")
-
 LOCATIONS = {
-    "AUC Academic Building": (52.3553, 4.9512), 
+    "AUC Academic Building": (52.3553, 4.9512),
     "UvA Science Park Library": (52.3544, 4.9557),
     "USC Universum Gym": (52.3558, 4.9561),
     "Amsterdam Science Park Station": (52.3530, 4.9485),
@@ -65,53 +23,63 @@ LOCATIONS = {
     "Amsterdam Muiderpoort Station": (52.3611, 4.9306),
     "Wereldmuseum": (52.3631, 4.9224),
     "Dappermarkt": (52.3627, 4.9279),
-    "Flevoparkbad": (52.3649, 4.9531)
+    "Flevoparkbad": (52.3649, 4.9531),
 }
 
-# 1. Load the local offline street layer
-# If you didn't run Step 1, this will look for the file in your notebook directory
-streets_gdf = gpd.read_file("amsterdam_streets.geojson")
+location_names = ["AUC Academic Building", "UvA Science Park Library", "USC Universum Gym", "Amsterdam Science Park Station", "SPAR",
+   "Albert Heijn", "Lidl", "Kruidvat", "OBA Javaplein", "Studio/K", "Oosterpark", "Flevopark", "C&C Asian Market", "CREA/UvA Roeterseiland Campus",
+   "Action", "Q-Factory", "Amsterdam Muiderpoort Station", "Wereldmuseum", "Dappermarkt", "Flevoparkbad"]
 
-# 2. Build your points dataframe
+location_coords = [(52.3553, 4.9512), (52.3544, 4.9557), (52.3558, 4.9561), (52.3530, 4.9485), (52.3547, 4.9503), (52.3577, 4.9393), (52.3617, 4.9403),
+(52.3637, 4.939), (52.3643, 4.9388), (52.3655, 4.9359), (52.3604, 4.9204), (52.3590, 4.9482), (52.3639, 4.9275), (52.3634, 4.9130), (52.3572, 4.9315),
+(52.3578, 4.9306), (52.3611, 4.9306), (52.3631, 4.9224), (52.3627, 4.9279), (52.3649, 4.9531)]
+
+bounds = (52.35, 4.91, 52.37, 4.96)
+
+
+# 1. Convert your dictionary into lists for GeoDataFrame
 names = list(LOCATIONS.keys())
-geometry = [Point(coords[1], coords[0]) for coords in LOCATIONS.values()]
-points_gdf = gpd.GeoDataFrame(geometry=geometry, crs="EPSG:4326")
-points_gdf['Name'] = names
+# Note: Shapely Points use (longitude, latitude) order
+geometry = [Point(lon, lat) for lat, lon in LOCATIONS.values()]
 
-# 3. Setup the Matplotlib plot layout
-fig, ax = plt.subplots(figsize=(16, 12), facecolor='#f5f5f2')
-ax.set_facecolor('#f5f5f2')
+# 2. Create the GeoDataFrame (using standard GPS coordinates EPSG:4326)
+gdf = gpd.GeoDataFrame({"name": names, "geometry": geometry}, crs="EPSG:4326")
 
-# 4. Draw the offline street lines first (as the background)
-streets_gdf.plot(ax=ax, color='#d0d0d0', linewidth=0.8, alpha=0.7, zorder=1)
+# 3. Web maps use Web Mercator (EPSG:3857). We must reproject it so the basemap fits perfectly
+gdf = gdf.to_crs(epsg=3857)
 
-# 5. Overlay your specific red coordinate location pins
-points_gdf.plot(ax=ax, color='#e63946', markersize=60, zorder=3, edgecolor='black', linewidth=0.5)
+# 4. Set up the Matplotlib plot
+fig, ax = plt.subplots(figsize=(12, 10))
 
-# 6. Annotate names onto the map using a clean layout
-for idx, row in points_gdf.iterrows():
-    lon = row['geometry'].x
-    lat = row['geometry'].y
-    
-    ax.annotate(
-        text=row['Name'], 
-        xy=(lon, lat),
-        xytext=(6, 3), 
-        textcoords="offset points", 
+# Plot the coordinates as red dots
+gdf.plot(ax=ax, color="red", markersize=40, zorder=2)
+
+# 5. Add text labels over the image next to the dots
+for idx, row in gdf.iterrows():
+    # Offset text slightly so it doesn't overlap the dot
+    ax.text(
+        row["geometry"].x + 60,
+        row["geometry"].y + 20,
+        row["name"],
         fontsize=8,
-        fontweight='bold',
-        color='#1d3557',
-        bbox=dict(boxstyle="round,pad=0.2", fc="#ffffff", ec="#b0b0b0", lw=0.6, alpha=0.9),
-        zorder=4
+        fontweight="bold",
+        color="black",
+        bbox=dict(
+            facecolor="white", alpha=0.7, edgecolor="gray", boxstyle="round,pad=0.2"
+        ),
+        zorder=3,
     )
 
-# Clean up axes and titles
-ax.set_title("Amsterdam Science Park & Environs (100% Offline Mode)", fontsize=16, fontweight='bold', color='#1d3557', pad=15)
-ax.axis('off') # Hides the latitude/longitude numbers for a cleaner layout
+# 6. Fetch the background image tiles and download them seamlessly
+# You can change the provider to cx.providers.CartoDB.Positron for a light map
+cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, zorder=1)
 
-# Set map limits to frame only where your points exist
-ax.set_xlim(4.910, 4.965)
-ax.set_ylim(52.348, 52.368)
+# Clean up axes so it looks like a clean, professional image
+ax.set_axis_off()
 
-plt.tight_layout()
-plt.show()
+# 7. Save directly to a local image file
+output_image = "science_park_geopandas.png"
+plt.savefig(output_image, bbox_inches="tight", dpi=200)
+plt.close()
+
+print(f"Static map image saved successfully to {output_image}!")
