@@ -37,9 +37,9 @@ location_coords = [(52.3553, 4.9512), (52.3544, 4.9557), (52.3558, 4.9561), (52.
 bounds = (52.35, 4.91, 52.37, 4.96)
 
 
-# 1. Convert your dictionary into lists for GeoDataFrame
+# 1. Convert dictionary into lists for GeoDataFrame
 names = list(LOCATIONS.keys())
-# Note: Shapely Points use (longitude, latitude) order
+
 geometry = [Point(lon, lat) for lat, lon in LOCATIONS.values()]
 
 # 2. Create the GeoDataFrame (using standard GPS coordinates EPSG:4326)
@@ -70,16 +70,8 @@ for idx, row in gdf.iterrows():
         zorder=3,
     )
 
-# 6. Fetch the background image tiles and download them seamlessly
-# You can change the provider to cx.providers.CartoDB.Positron for a light map
+# 6. Fetch the background image tiles and download them
 cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, zorder=1)
-
-# Clean up axes so it looks like a clean, professional image
 ax.set_axis_off()
 
-# 7. Save directly to a local image file
-output_image = "science_park_geopandas.png"
-plt.savefig(output_image, bbox_inches="tight", dpi=200)
-plt.close()
-
-print(f"Static map image saved successfully to {output_image}!")
+plt.show()
