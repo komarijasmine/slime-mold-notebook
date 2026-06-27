@@ -4,11 +4,8 @@ import geopandas as gpd
 import numpy as np
 from scipy.spatial import cKDTree
 
-from ... import ...
-
 def jittered_hex_grid_points(
     bounds,
-    allowed_area,
     spacing=3000,
     jitter=0.25,
     seed=0
@@ -27,9 +24,6 @@ def jittered_hex_grid_points(
 
     points = []
 
-    # This makes repeated geometry checks faster
-    allowed_prepared = prep(allowed_area)
-
     y = miny
     row = 0
 
@@ -47,10 +41,6 @@ def jittered_hex_grid_points(
             candidate_y = y + jitter_y
 
             candidate_point = Point(candidate_x, candidate_y)
-
-            # Keep the point only if it is inside allowed_area
-            if allowed_prepared.covers(candidate_point):
-                points.append([candidate_x, candidate_y])
 
             x += spacing
 
