@@ -1,0 +1,16 @@
+.venv/
+venv/
+ENV/
+env/
+
+.ipynb_checkpoints/
+checkpoint_*/
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.rasterio/
+.tiles/
+data_cache/
+*.geojp
