@@ -80,3 +80,31 @@ def edges_from_knn(coords, k=6):
             edges.add(edge)
 
     return edges
+
+def micro_links_from_edges(edges, coords):
+    '''
+    input: EDGES (list of tuples
+                  where each tuple is a pair of indices
+                  corresponding to nodes in COORDS)
+    '''
+    
+    micro_links = []
+    link_id = 0
+
+    for i, j in edges:
+        p1 = coords[i]
+        p2 = coords[j]
+
+        line = LineString([tuple(p1), tuple(p2)])
+
+        micro_links.append({
+            "edge_id": link_id,
+            "node_i": i,
+            "node_j": j,
+            "length_m": line.length,
+            "geometry": line,
+        })
+
+        link_id += 1
+
+    return micro_links

@@ -16,3 +16,4 @@ to do:
 - figure out how to base total_length on macrolinks
   1. when making macrolink, encode its length as sum of the microlinks that constitute it
   2. use macrolink lengths
+- change plot_mesh.py to account for changes to make_mesh.py
