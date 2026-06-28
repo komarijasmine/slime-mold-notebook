@@ -5,8 +5,8 @@ import numpy as np
 from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
 
-from make_mesh import edges_from_knn, jittered_hex_grid_points
-from science_park_map import location_coords, location_names, gdf
+from make_mesh import edges_from_knn, jittered_hex_grid_points, 
+from science_park_map import location_coords, location_names, gdf, bounds
 
 
 # calculating bounds in meters for buffer
