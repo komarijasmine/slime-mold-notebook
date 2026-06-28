@@ -1,8 +1,6 @@
 import contextily as cx
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
 
 from make_mesh import edges_from_knn, jittered_hex_grid_points
@@ -15,17 +13,19 @@ def plot_mesh(coords, micro_links):
 
     point_objects = [Point(xy) for xy in coords]
     points_gdf = gpd.GeoDataFrame(geometry=point_objects, crs="EPSG:4326")
+    gdf_4326 = gdf.to_crs(epsg=4326) if gdf.crs != "EPSG:4326" else gdf
 
-    gdf_degrees = gdf.to_crs(epsg=4326)
 
-    min_x, min_y, max_x, max_y = points_gdf.total_bounds
-    padding = 0.005
+    edges_3857  = edges_gdf.to_crs(epsg=3857)
+    points_3857 = points_gdf.to_crs(epsg=3857)
+    gdf_3857    = gdf_4326.to_crs(epsg=3857)
+
     # plotting 
     fig, ax = plt.subplots(figsize=(13, 11))
 
-    edges_gdf.plot(ax=ax, color="#2b5c8f", linewidth=1.2, alpha=0.4, zorder=2)
-    points_gdf.plot(ax=ax, color="#2b5c8f", markersize=8, alpha=0.6, zorder=3)
-    gdf.plot(ax=ax, color="red", markersize=50, edgecolor="white", linewidth=1, zorder=4)
+    edges_3857.plot(ax=ax, color="#2b5c8f", linewidth=1.2, alpha=0.4, zorder=2)
+    points_3857.plot(ax=ax, color="#2b5c8f", markersize=8, alpha=0.6, zorder=3)
+    gdf_3857.plot(ax=ax, color="red", markersize=50, edgecolor="white", linewidth=1, zorder=4)
 
     for idx, row in gdf.iterrows():
         ax.text(
@@ -39,10 +39,7 @@ def plot_mesh(coords, micro_links):
             zorder=5,
         )
 
-    ax.set_xlim(bounds[0], bounds[2])
-    ax.set_ylim(bounds[1], bounds[3])
-
-    cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, crs="EPSG:4326", zorder=1)
+    cx.add_basemap(ax, source=cx.providers.OpenStreetMap.Mapnik, zorder=1)
 
     ax.set_axis_off()
     plt.show()
