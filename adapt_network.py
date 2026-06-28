@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-from shapely.geometry import Linestring, Point
+from shapely.geometry import LineString, Point
 
 def solve_pressures(num_nodes, link_is, link_js, lengths, D, source_node, sink_node, I0=1.0):
     """
