@@ -1,3 +1,8 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+from shapely.geometry import Linestring, Point
+
 def solve_pressures(num_nodes, link_is, link_js, lengths, D, source_node, sink_node, I0=1.0):
     """
     Solve pressure values at all nodes.
@@ -67,33 +72,101 @@ def update_conductivity(D, Q, dt=0.1, gamma=1.0, D_min=1e-4):
     return D_new
 
 
-def make_edge_segments(edges_gdf):
+def conductivity_to_linewidths(D, min_width=0.05, max_width=3.0):
     """
-    Convert edge LineString geometries into coordinate arrays for LineCollection.
+    Convert conductivity values into line widths for plotting.
     """
 
-    segments = []
+    D = np.asarray(D, dtype=float)
+    D = np.maximum(D, 0)
 
-    for geom in edges_gdf.geometry:
-        segments.append(np.asarray(geom.coords))
+    values = np.log1p(D)
 
-    return segments
+    lo = np.percentile(values, 5)
+    hi = np.percentile(values, 99)
+
+    if hi == lo:
+        return np.full_like(values, (min_width + max_width) / 2)
+
+    values = np.clip(values, lo, hi)
+
+    widths = min_width + (values - lo) / (hi - lo) * (max_width - min_width)
+
+    return widths
+
+
+def get_bounds_from_segments_and_points(edge_segments, food_coords):
+    """
+    Get plot bounds from edge segments and food coordinates.
+    """
+
+    segment_points = np.vstack([
+        np.asarray(segment)
+        for segment in edge_segments
+    ])
+
+    food_coords = np.asarray(food_coords)
+
+    all_points = np.vstack([
+        segment_points,
+        food_coords,
+    ])
+
+    minx = all_points[:, 0].min()
+    miny = all_points[:, 1].min()
+    maxx = all_points[:, 0].max()
+    maxy = all_points[:, 1].max()
+
+    return minx, miny, maxx, maxy
 
 
 def plot_conductivity_snapshots(
-    edges_gdf,
-    food_nodes_gdf,
+    edge_segments,
+    food_coords,
     snapshots,
     output_path=None,
     show=True,
+    padding=5000,
 ):
     """
     Make one vertical figure with all conductivity snapshots.
 
-    If show=True, display the figure under a Jupyter notebook code cell.
+    Parameters
+    ----------
+    edge_segments:
+        List or array of edge coordinate sequences.
 
-    If output_path is given, save the figure.
-    If output_path is None, only display it.
+        Example:
+            [
+                [(x1, y1), (x2, y2)],
+                [(x3, y3), (x4, y4)],
+            ]
+
+    food_coords:
+        List or array of food node coordinates.
+
+        Example:
+            [
+                [x1, y1],
+                [x2, y2],
+            ]
+
+    snapshots:
+        List of dictionaries.
+
+        Each snapshot should look like:
+            {
+                "step": 0,
+                "conductivity": D
+            }
+
+        D must have one conductivity value per edge segment.
+
+    output_path:
+        Optional path to save the figure.
+
+    show:
+        If True, display the plot under a Jupyter notebook cell.
     """
 
     n_plots = len(snapshots)
@@ -102,7 +175,15 @@ def plot_conductivity_snapshots(
         print("No snapshots to plot.")
         return
 
-    segments = make_edge_segments(edges_gdf)
+    edge_segments = [
+        np.asarray(segment)
+        for segment in edge_segments
+    ]
+
+    food_coords = np.asarray(food_coords)
+
+    if food_coords.ndim != 2 or food_coords.shape[1] != 2:
+        raise ValueError("food_coords must have shape (number_of_food_nodes, 2).")
 
     fig, axes = plt.subplots(
         n_plots,
@@ -115,12 +196,19 @@ def plot_conductivity_snapshots(
     if n_plots == 1:
         axes = [axes]
 
-    minx, miny, maxx, maxy = edges_gdf.total_bounds
-    padding = 5000
+    minx, miny, maxx, maxy = get_bounds_from_segments_and_points(
+        edge_segments=edge_segments,
+        food_coords=food_coords,
+    )
 
     for ax, snapshot in zip(axes, snapshots):
         t = snapshot["step"]
-        D = snapshot["conductivity"]
+        D = np.asarray(snapshot["conductivity"])
+
+        if len(D) != len(edge_segments):
+            raise ValueError(
+                "The conductivity array must have one value per edge segment."
+            )
 
         widths = conductivity_to_linewidths(
             D,
@@ -129,16 +217,17 @@ def plot_conductivity_snapshots(
         )
 
         edge_collection = LineCollection(
-            segments,
+            edge_segments,
             linewidths=widths,
             alpha=0.8,
         )
 
         ax.add_collection(edge_collection)
 
-        food_nodes_gdf.plot(
-            ax=ax,
-            markersize=15,
+        ax.scatter(
+            food_coords[:, 0],
+            food_coords[:, 1],
+            s=15,
         )
 
         ax.set_title(f"Step {t}")
@@ -159,92 +248,3 @@ def plot_conductivity_snapshots(
         plt.show()
 
     plt.close(fig)
-
-def run_simulation(coords,
-                   micro_links,
-                   n_steps=1000,
-                   seed=0,
-                   t_btwn_snapshots=100,
-                   I0=1.0,
-                   gamma=1.0):
-    
-    rng = np.random.default_rng(seed)
-
-    num_links = len(micro_links)
-    num_nodes = len(coords)
-
-    link_is = micro_links["node_i"].to_numpy(dtype=int)
-    link_js = micro_links["node_j"].to_numpy(dtype=int)
-    lengths = micro_links["length_m"].to_numpy(dtype=float)
-
-    # make array for keeping track of conductivities
-    D = np.ones(num_links)
-
-    snapshots = [{"step": 0,
-                "conductivity": D.copy(),
-                }]
-    
-    node_indices = range(len(coords))
-    
-    for t in range(n_steps):
-        # choose source and sink node indices randomly
-        source_node, sink_node = rng.choice(
-            node_indices,
-            size=2,
-            replace=False,
-        )
-
-        # create array of pressures corresponding to ...
-        pressures = solve_pressures(
-            num_nodes=num_nodes,
-            link_is=link_is,
-            link_js=link_js,
-            lengths=lengths,
-            D=D,
-            source_node=source_node,
-            sink_node=sink_node,
-            I0=I0,
-        )
-
-        Q = compute_flux(
-            link_is=link_is,
-            link_js=link_js,
-            lengths=lengths,
-            D=D,
-            pressures=pressures,
-        )
-
-        D = update_conductivity(
-            D=D,
-            Q=Q,
-            dt=0.1,
-            gamma=gamma,
-            D_min=1e-4,
-        )
-
-        if t % t_btwn_snapshots == 0:
-            print(
-                "step",
-                t,
-                "source",
-                source_node,
-                "sink",
-                sink_node,
-                "D min/max",
-                D.min(),
-                D.max(),
-            )
-
-        snapshots.append({
-                "step": t,
-                "conductivity": D.copy(),
-            })
-        
-        plot_conductivity_snapshots(
-        edges_gdf=edges_gdf,
-        food_nodes_gdf=food_nodes_gdf,
-        snapshots=snapshots,
-        output_path=output_path,
-        )
-    
-    return
