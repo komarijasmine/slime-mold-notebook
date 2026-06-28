@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from shapely.geometry import LineString, Point
+from scipy.sparse import coo_matrix
+from scipy.sparse.linalg import spsolve
 
 def solve_pressures(num_nodes, link_is, link_js, lengths, D, source_node, sink_node, I0=1.0):
     """
